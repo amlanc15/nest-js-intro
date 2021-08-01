@@ -1,44 +1,44 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
+import { InjectModel } from "@nestjs/mongoose";
+import { Model } from "mongoose";
 import { Product } from "./product.model";
 
 @Injectable()
 export class ProductService {
 
-    public updateProduct(id: string, title: string, price: number, desc: string) {
-        const [product] = this.getExactProduct(id);
-        product.desc = desc ? desc : product.desc;
-        product.price = price ? price : product.price;
-        product.name = title ? title : product.name;
-        return `Product with ${id} id is updated scuessfully.`
-    }
+    constructor(@InjectModel('Product') private readonly mongooseModel : Model<Product>) {}
 
     private products: Product[] = [];
 
-    public addProduct(name: string, price: number, desc: string) {
-        this.products.push(new Product(name, price, desc));
-        return "Product Inserted Sucessfully";
+    public async addProduct(name: string, price: number, desc: string) {
+        const prodModel = new this.mongooseModel({name, price, desc});
+        const output = await prodModel.save();
+        return `${output.id} Product Inserted Sucessfully`;
     }
 
     public getProducts() {
-        return [...this.products];
+        return this.mongooseModel.find().exec();
     }
 
     public getProduct(id: string) {
-        const [prouct] = this.getExactProduct(id);
-        return { ...prouct };
+       return this.findDetails(id);
     }
 
-    public delete(id: string) {
-        const [_, index] = this.getExactProduct(id);
-        this.products.splice(index, 1);
+    private findDetails(id: string) {
+        return this.mongooseModel.findById(id).exec();
+    }
+
+    public async delete(id: string) {
+        await this.mongooseModel.findByIdAndDelete(id).exec();
         return `Product with ${id} deleted sucessfully`;
     }
 
-    private getExactProduct(id: string): [Product, number] {
-        const prouct = this.products.findIndex((prod) => prod.id === id);
-        if (!prouct) {
-            throw new NotFoundException(`No product found with ${id} id.`);
-        }
-        return [this.products[prouct], prouct];
+    public async updateProduct(id: string, title: string, price: number, desc: string) {
+        const data = await this.findDetails(id);
+        data.name = title ? title : data.name;
+        data.price = price ? price : data.price;
+        data.desc = desc ? desc : data.desc;
+        await data.save();
+        return `Product Updated Sucessfully`;
     }
 }

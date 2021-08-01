@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from "@nestjs/common";
+import { ApiResponse } from "@nestjs/swagger";
 import { ProductService } from "./product.service";
 
 @Controller("products")
@@ -6,7 +7,9 @@ export class ProductController {
     constructor(private readonly productSvc: ProductService) {}
 
     @Post()
-    public addProduct(@Body("title") title: string,
+    @ApiResponse({ status: 201, description: 'The record has been successfully created.'})
+    @ApiResponse({ status: 403, description: 'Forbidden.'})
+    public async addProduct(@Body("title") title: string,
                         @Body("price") price: number,
                         @Body("desc") desc: string) {
         return this.productSvc.addProduct(title, price, desc);
